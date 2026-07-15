@@ -1,0 +1,34 @@
+name: paper-trading
+
+on:
+  schedule:
+    # 7 min posle zatvaranja svake 4h svece (UTC): 00,04,08,12,16,20
+    - cron: '7 0,4,8,12,16,20 * * *'
+  workflow_dispatch: {}   # rucno pokretanje iz Actions taba
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instaliraj zavisnosti
+        run: pip install requests
+
+      - name: Pokreni paper proveru
+        run: python paper_check.py --fetch
+
+      - name: Sacuvaj stanje (commit)
+        run: |
+          git config user.name "paper-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add paper_state.json paper_log.csv
+          git diff --cached --quiet || git commit -m "paper update $(date -u +'%Y-%m-%d %H:%M')"
+          git push
